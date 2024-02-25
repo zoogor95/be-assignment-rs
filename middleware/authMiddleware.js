@@ -1,16 +1,16 @@
-const admin = require('firebase-admin');
+const { getAuth } = require('firebase/auth');
 
-const authMiddleware = (req, res, next) => {
+const authMiddleware = async (req, res, next) => {
   const idToken = req.headers.authorization;
 
-  admin.auth().verifyIdToken(idToken)
-    .then((decodedToken) => {
-      req.user = decodedToken;
-      next();
-    })
-    .catch((error) => {
-      res.status(401).send('Unauthorized');
-    });
+  try {
+    const decodedToken = await getAuth().verifyIdToken(idToken);
+    req.user = decodedToken;
+    next();
+  } catch (error) {
+    console.error('Error verifying Firebase ID token:', error);
+    res.status(401).json({ error: 'Unauthorized' });
+  }
 };
 
 module.exports = authMiddleware;

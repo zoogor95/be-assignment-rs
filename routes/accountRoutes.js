@@ -2,8 +2,10 @@ const express = require('express');
 const router = express.Router();
 const Account = require('../models/account');
 const authMiddleware = require('../middleware/authMiddleware');
+const bcrypt = require('bcrypt');
+const { createUserWithEmailAndPassword } = require('firebase/auth');
 
-// Get all accounts with optional limit
+
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit) : null;
@@ -14,17 +16,35 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-// Create a new account
+const registerUser = async (email, password) => {
+  try {
+    const hashedPassword = bcrypt.hashSync(password, 10);
+    const userRecord = await createUserWithEmailAndPassword({
+      email: email,
+      password: hashedPassword
+    }).then((userCredential) => {
+      var user = userCredential.user;
+      console.log(user);
+      console.log('User registered successfully:', userRecord.uid);
+      return userRecord;
+      });
+      console.error('Error registering user:', error.message);
+  } catch (error) {
+    console.error('Error registering user:', error.message);
+    throw error;
+  }
+};
+
 router.post('/', async (req, res) => {
   try {
-    const account = await Account.create(req.body);
+    const res = await registerUser(req.body.email, req.body.password)
+    console.log(res)
     res.status(201).json(account);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Get a specific account
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -39,7 +59,6 @@ router.get('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Update an account
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -55,7 +74,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Delete an account
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
